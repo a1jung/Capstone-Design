@@ -1,26 +1,44 @@
-const chatbox = document.getElementById("chatbox");
-const input = document.getElementById("query");
-const btn = document.getElementById("send");
+const chatBox = document.getElementById("chat-box");
+const chatForm = document.getElementById("chat-form");
+const userInput = document.getElementById("user-input");
 
-btn.onclick = async () => {
-    const q = input.value.trim();
-    if(!q) return;
-    appendMessage(q, "user");
-    input.value = "";
-    const resp = await fetch("/ask", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({query: q})
+function appendMessage(content, sender) {
+  const msg = document.createElement("div");
+  msg.classList.add("message", sender);
+  msg.textContent = content;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function sendQuery(query) {
+  appendMessage(query, "user");
+
+  // FastAPI backend 요청
+  try {
+    const response = await fetch("/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: query })
     });
-    const data = await resp.json();
-    if(data.local) appendMessage(data.local, "local");
-    if(data.ai) appendMessage(data.ai, "ai");
+    const data = await response.json();
+    appendMessage(data.answer || "답변이 없습니다.", "bot");
+  } catch (err) {
+    appendMessage("서버 오류가 발생했습니다.", "bot");
+    console.error(err);
+  }
 }
 
-function appendMessage(msg, cls){
-    const div = document.createElement("div");
-    div.className = "message " + cls;
-    div.textContent = msg;
-    chatbox.appendChild(div);
-    chatbox.scrollTop = chatbox.scrollHeight;
-}
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const query = userInput.value.trim();
+  if (!query) return;
+  sendQuery(query);
+  userInput.value = "";
+});
+
+userInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    chatForm.dispatchEvent(new Event("submit"));
+  }
+});
