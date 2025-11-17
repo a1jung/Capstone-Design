@@ -1,0 +1,50 @@
+{
+  "mast": {
+    "material": "High-strength Aluminum",
+    "class_tolerance": "ILCA 규격 허용 오차 매우 좁음",
+    "rake_adjustment": "무게 중심과 헬름 밸런스 조정 가능",
+    "warning": "붐뱅 과도 사용 시 마스트 상단 스트레스 발생, 다운윈드 전환 시 풀어야 손상 방지"
+  },
+  "boom": {
+    "function": "메인 세일 풋(foot) 지지",
+    "adjustment": "각도 및 위치, 오우트홀과 상호작용하여 세일 하단 곡률 결정",
+    "check": "조정 시 꼬임(twist) 없이 로테이트 상태 확인 필요"
+  },
+  "boom_vang": {
+    "description": "붐뱅(Boom Vang/Kicker) – Laser에서 매우 중요한 컨트롤",
+    "system": "클래식 3:1, 레이싱 업그레이드 15:1",
+    "benefit": "조정 용이, 하이킹 중에도 트리밍 가능",
+    "strategy": "강풍 시 상단 리프 제어 및 마스트 벤딩 관리, 다운윈드 직전 풀어서 리스크 관리"
+  },
+  "outhaul": {
+    "function": "세일 풋 인장 조절",
+    "effect": "팽팽히 하면 세일 평평해짐 → 출력 감소, 업윈드 효율 향상; 느슨하면 깊이 증가 → 약풍 유리",
+    "advanced": "업그레이드된 레이싱 시스템으로 라인 길이와 인장 세밀 조절 가능"
+  },
+  "cunningham": {
+    "function": "Luff tension(앞전 인장) 조절",
+    "effect": "당기면 드래프트 위치 이동 → 세일 플랫 → 업윈드 성능 향상; 과도 시 출력 감소",
+    "class_rule": "최대 5번 턴포인트 허용, 세밀한 레버리지 설계 가능"
+  },
+  "halyard_downhaul": {
+    "function": "세일 올림/커닝햄과 함께 Luff 인장 조절",
+    "note": "ILCA 핸드북 공인 방식, 클래스 규칙 내 라인 설계 필요"
+  },
+  "mainsheet": {
+    "function": "붐 좌우 제어, 세일 각도 조절",
+    "advanced": "트래블러와 함께 보트 힐과 헬름 압력 밸런스, 레이스 중 지속적 조정 필요"
+  },
+  "telltales": {
+    "placement": "세일 Luff, Leech, Top",
+    "purpose": "바람 흐름 상태 감지(flow separation, stall)",
+    "tip": "상단 테일로 리프(twist) 판단, 꼬임 조정/오우트홀/붐뱅 조정 필요; 져른형 테일 권장"
+  },
+  "overview": "Laser의 장비는 단순해 보이지만, 각 컨트롤 라인이 정밀한 역할을 수행하며 고성능 세일 트림을 가능하게 한다.",
+  "references": [
+    "ILCA Sailing",
+    "Washington Yacht Club",
+    "Sailing World",
+    "Dinghy Sailing",
+    "Wikipedia"
+  ]
+}
