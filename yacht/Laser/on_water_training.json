@@ -1,0 +1,28 @@
+{
+  "overview": "전문가 수준의 Laser 훈련에서는 체중 이동과 세일 트림 뿐 아니라, 상황별 피드백 루프를 만들고 보트 밸런스를 동적으로 조정하는 능력이 중요하다.",
+  "hiking_balance": {
+    "upwind": "체중을 하이킹 스트랩 밖으로 내밀어 힐을 최소화하며 속도를 유지. 파도나 돌풍 시 미세 조정 필요.",
+    "downwind": "체중을 뒤쪽으로 이동시키며 붐 상태 관찰. 스피드가 붙으면 앞쪽 이동으로 프론트 플레이트 살리기."
+  },
+  "sail_control_loop": {
+    "adjustment_cycle": "한 가지 컨트롤 라인 변경 → 흐름 확인 → 체감 피드백 → 미세 조정 반복",
+    "telltales_feedback": "테일테일 관찰로 흐름 상태 평가 후 루프 인장, 리프, 오우트홀, 붐뱅 조정",
+    "change_response": "돌풍, 유속, 파도 변화에 대비하여 컨트롤 우선순위 체크리스트 사용 (예: 붐뱅 → 커닝햄 → 시트)"
+  },
+  "helm_steering": {
+    "description": "조타수는 핸들 고정이 아닌, 세일 트림 변화에 따라 미세하게 방향 조정",
+    "example": "레이징 시 트림 열림 → 조타/체중으로 선회 각 보정"
+  },
+  "boat_balance_feedback": "연습 세션마다 다양한 조건(약풍, 중풍, 파도, 돌풍)을 시뮬레이션하며 조타/시트 반응 실험 반복",
+  "strategy_physical_integration": {
+    "training_focus": "테크닉 연습 + 피지컬 + 전략 + 장비 튜닝 결합",
+    "example": "세팅 변경 후 헛발로 보트 밸런스 체크 → 복귀 시간 → 속도 변화 피드백 루프 포함",
+    "physical_training": "하이킹 근력, 코어 안정성, 조타/브레이스 근육 강화, 체중 이동 매끄럽게 연습"
+  },
+  "references": [
+    "ILCA Sailing",
+    "Sailing World",
+    "Dinghy Sailing",
+    "Laser Training Manuals"
+  ]
+}
