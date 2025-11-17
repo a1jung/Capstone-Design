@@ -1,112 +1,134 @@
-import os
-import json
+# main.py
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from fastapi.templating import Jinja2Templates
-from dotenv import load_dotenv
-from openai import OpenAI
+import os, json, re, textwrap
+from typing import Dict, List
 
+# OpenAI 패키지 로드
+try:
+    import openai
+except Exception:
+    openai = None
+
+# .env에서 키 읽기
+from dotenv import load_dotenv
 load_dotenv()
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 app = FastAPI()
 
-# OpenAI 클라이언트
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# static 서빙
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# static / templates 연결
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-###############################
-#   지식베이스 자동 로드       #
-###############################
-KB = {}
-
-def load_all_knowledge():
-    base_dir = "knowledge"
-    result = {}
-
-    if not os.path.exists(base_dir):
+# ====== JSON 안전 로드 ======
+def load_json(file_path):
+    if not os.path.exists(file_path):
+        print(f"[Warn] File not found: {file_path}")
+        return {}
+    try:
+        with open(file_path, "r", encoding="utf-8-sig") as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        print(f"[Warn] JSON decode error: {file_path}")
         return {}
 
-    for domain in os.listdir(base_dir):
-        domain_path = os.path.join(base_dir, domain)
-        if not os.path.isdir(domain_path):
+# ====== 지식베이스 초기화 (기본 구조만) ======
+KB: Dict[str, Dict[str, dict]] = {
+    "yacht": {},       # 나중에 Laser, 470 JSON 추가 가능
+    "baseball": {},    # 나중에 JSON 추가
+    "gymnastics": {},  # 나중에 JSON 추가
+    "misc": {}         # 기타
+}
+
+# ====== 간단 토크나이저 & 검색 ======
+def tokenize(text: str) -> List[str]:
+    if not text:
+        return []
+    tokens = re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))
+    return [t.lower() for t in tokens]
+
+def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
+    if not doc_text:
+        return 0
+    dtoks = tokenize(doc_text)
+    s = 0
+    dtokset = set(dtoks)
+    for qt in query_tokens:
+        if qt in dtokset:
+            s += 2
+        for dt in dtoks:
+            if qt in dt:
+                s += 1
+    return s
+
+def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
+    qtokens = tokenize(query)
+    hits = []
+    if not domain_kb:
+        return []
+    for key, val in domain_kb.items():
+        text = json.dumps(val, ensure_ascii=False) if isinstance(val, dict) else str(val)
+        score = score_doc_for_query(text, qtokens)
+        hits.append((score, key, val))
+    hits = sorted(hits, key=lambda x: x[0], reverse=True)
+    return [{"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0][:top_k]
+
+# ====== 로컬 답변 생성 ======
+def local_synthesize_answer(query: str, retrieved: dict) -> str:
+    parts = [f"질문: {query}\n"]
+    for domain, hits in retrieved.items():
+        if not hits:
             continue
+        parts.append(f"--- {domain.upper()} 관련 정보 ---")
+        for h in hits:
+            snippet = json.dumps(h["doc"], ensure_ascii=False, indent=2) if isinstance(h["doc"], dict) else str(h["doc"])
+            parts.append(f"[{h['key']}] (score {h['score']}):\n{snippet}\n")
+    answer = "\n".join(parts)
+    return textwrap.shorten(answer, width=3500, placeholder="\n\n…(생략)")
 
-        result[domain] = {}
-
-        for file in os.listdir(domain_path):
-            if file.endswith(".json"):
-                with open(os.path.join(domain_path, file), "r", encoding="utf-8") as f:
-                    result[domain][file] = json.load(f)
-
-    return result
-
-KB = load_all_knowledge()
-
-###############################
-#     요청 모델                #
-###############################
-class ChatRequest(BaseModel):
-    message: str
-
-###############################
-#   AI에게 넘길 시스템 프롬프트 #
-###############################
-SYSTEM_PROMPT = """
-너는 요트, 야구, 기계체조 전문 지식을 가진 AI 전문가 시스템이다.
-질문을 분석해서 어떤 분야인지 자동으로 판단하고,
-아래 제공된 JSON 지식을 참고해 정확하고 자세하게 설명해라.
-
-- 요트: sailing / laser / 470 / mast / sail trim 등
-- 야구: pitching, batting, rules 등
-- 기계체조: floor, vault, pommel, rings 등
-
-만약 지식베이스에 있는 내용이면 반드시 기반해서 답변하고,
-없는 내용이면 일반적인 상식으로 설명한다.
-"""
-
-###############################
-#   ChatGPT 응답 생성 함수     #
-###############################
-def generate_answer(user_message: str):
-    knowledge_text = json.dumps(KB, ensure_ascii=False)
-
-    prompt = f"""
-[사용자 질문]
-{user_message}
-
-[지식베이스 JSON]
-{knowledge_text}
-
-위 JSON에서 관련 있는 내용을 골라서 사람이 이해하기 쉽게 정리해서 설명해줘.
-필요하면 여러 영역을 조합해도 된다.
-"""
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=800
-    )
-
-    return response.choices[0].message.content
-
-###############################
-#   라우팅                    #
-###############################
-@app.get("/")
-def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.post("/chat")
-def chat(req: ChatRequest):
+# ====== OpenAI 연동 답변 (선택) ======
+def openai_generate(system_prompt: str, user_prompt: str):
+    if openai is None:
+        return "OpenAI 패키지가 설치되어 있지 않습니다."
+    if not OPENAI_API_KEY:
+        return "OpenAI API Key가 제공되지 않았습니다."
+    openai.api_key = OPENAI_API_KEY
     try:
-        answer = generate_answer(req.message)
-        return {"answer": answer}
+        resp = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+        )
+        return resp.choices[0].message.content
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return f"OpenAI 호출 오류: {str(e)}"
+
+# ====== API 엔드포인트 ======
+@app.post("/ask")
+async def ask(request: Request):
+    data = await request.json()
+    query = data.get("query", "")
+    use_openai = data.get("use_openai", False)
+
+    # 로컬 검색
+    retrieved = {domain: retrieve_relevant(KB.get(domain, {}), query) for domain in KB.keys()}
+    local_answer = local_synthesize_answer(query, retrieved)
+
+    if use_openai:
+        system_prompt = "당신은 운동 전문가 AI입니다. 요트, 야구, 기계체조 지식을 활용하여 답변합니다."
+        openai_answer = openai_generate(system_prompt, query)
+        return JSONResponse({"answer": local_answer, "openai_answer": openai_answer})
+    else:
+        return JSONResponse({"answer": local_answer})
+
+# ====== 기본 페이지 ======
+@app.get("/")
+async def index():
+    index_path = os.path.join("static", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({"message": "Hello! 웹페이지 파일(index.html)이 없습니다."})
