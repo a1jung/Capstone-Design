@@ -1,24 +1,20 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <title>Capstone Expert Chat</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capstone Design AI</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>전문가 챗 — 요트 / 야구 / 체조</h1>
-
-    <div id="chat" class="chat"></div>
-
-    <div class="controls">
-      <textarea id="query" placeholder="질문을 입력하세요. 예: '레이저 세일 튜닝, 풍속 10노트에서 어떻게 세팅하나요?'"></textarea>
-      <label><input type="checkbox" id="use_openai"> OpenAI로 고급 응답 사용</label>
-      <input id="openai_key" type="password" placeholder="(선택) OpenAI API Key 입력 (환경변수로 설정 권장)"/>
-      <button id="send">전송</button>
-    </div>
+  <div class="chat-container">
+    <h1>Capstone Design AI</h1>
+    <div id="chat-box"></div>
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="질문을 입력하세요..." autocomplete="off">
+      <button type="submit">전송</button>
+    </form>
   </div>
-
   <script src="/static/script.js"></script>
 </body>
 </html>
