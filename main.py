@@ -1,158 +1,112 @@
-# main.py
+import os
+import json
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-import os, json, re, textwrap
-from typing import Dict, List
+from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
+from dotenv import load_dotenv
+from openai import OpenAI
 
-# Optional OpenAI usage
-try:
-    import openai
-except Exception:
-    openai = None
-
+load_dotenv()
 app = FastAPI()
 
-# static 서빙
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+# OpenAI 클라이언트
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# ====== 유틸: JSON 안전 로드 ======
-def load_json(file_path):
-    if not os.path.exists(file_path):
-        print(f"[Warn] File not found: {file_path}")
+# static / templates 연결
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+###############################
+#   지식베이스 자동 로드       #
+###############################
+KB = {}
+
+def load_all_knowledge():
+    base_dir = "knowledge"
+    result = {}
+
+    if not os.path.exists(base_dir):
         return {}
-    try:
-        with open(file_path, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        print(f"[Warn] JSON decode error: {file_path}")
-        return {}
 
-# ====== 지식베이스 로드 (도메인별) ======
-KB: Dict[str, Dict[str, dict]] = {}
-# domains and expected folder names (case-sensitive on server)
-domains = {
-    "yacht": ["yacht", ["Laser", "470"]],
-    "baseball": ["baseball", []],
-    "gymnastics": ["gymnastics", []],
-}
-
-# load generic files: for yacht we load per-class files; for other domains load single JSONs in folder
-if os.path.exists("yacht"):
-    KB["yacht"] = {}
-    # try Laser and 470 directories (case-sensitive)
-    for cls in ["Laser", "470", "laser", "470"]:
-        dir_path = os.path.join("yacht", cls)
-        if os.path.isdir(dir_path):
-            # load all json files in that folder and combine under one doc
-            combined = {}
-            for fname in os.listdir(dir_path):
-                if fname.lower().endswith(".json"):
-                    combined_name = fname
-                    combined[combined_name] = load_json(os.path.join(dir_path, fname))
-            if combined:
-                KB["yacht"][cls.lower()] = combined
-
-# baseball folder: load all json files and flatten
-if os.path.exists("baseball"):
-    KB["baseball"] = {}
-    for fname in os.listdir("baseball"):
-        if fname.lower().endswith(".json"):
-            KB["baseball"][fname] = load_json(os.path.join("baseball", fname))
-
-# gymnastics folder
-if os.path.exists("gymnastics"):
-    KB["gymnastics"] = {}
-    for fname in os.listdir("gymnastics"):
-        if fname.lower().endswith(".json"):
-            KB["gymnastics"][fname] = load_json(os.path.join("gymnastics", fname))
-
-# fallback: if a top-level JSON exists (fitness_knowledge.json etc.)
-for top in ["fitness_knowledge.json", "fitness_knowledge"]:
-    if os.path.exists(top):
-        KB.setdefault("misc", {})["fitness_knowledge"] = load_json(top)
-
-# ====== 간단한 키워드 기반 검색/랭킹 ======
-def tokenize(text: str) -> List[str]:
-    # 간단 토크나이저: 알파벳/한글 단어 분리, 소문자
-    if not text:
-        return []
-    tokens = re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))
-    return [t.lower() for t in tokens]
-
-def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
-    if not doc_text:
-        return 0
-    dtoks = tokenize(doc_text)
-    s = 0
-    dtokset = set(dtoks)
-    for qt in query_tokens:
-        if qt in dtokset:
-            s += 2
-        # partial match
-        for dt in dtoks:
-            if qt in dt:
-                s += 1
-    return s
-
-def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
-    qtokens = tokenize(query)
-    hits = []
-    # domain_kb may be nested (like yacht: { 'laser': {file: obj}} or baseball: {file: obj})
-    if not domain_kb:
-        return []
-    # flatten
-    for key, val in domain_kb.items():
-        # val might be dict of files or a doc
-        if isinstance(val, dict):
-            # stringify the contents for scoring
-            text = json.dumps(val, ensure_ascii=False)
-            score = score_doc_for_query(text, qtokens)
-            hits.append((score, key, val))
-        else:
-            text = str(val)
-            score = score_doc_for_query(text, qtokens)
-            hits.append((score, key, val))
-    hits = sorted(hits, key=lambda x: x[0], reverse=True)
-    return [ {"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0 ][:top_k]
-
-# ====== 로컬 응답 생성기 (간단 요약/조합) ======
-def local_synthesize_answer(query: str, retrieved: dict) -> str:
-    # retrieved: {domain: [hits...], ...}
-    parts = []
-    parts.append(f"질문: {query}\n")
-    for domain, hits in retrieved.items():
-        if not hits:
+    for domain in os.listdir(base_dir):
+        domain_path = os.path.join(base_dir, domain)
+        if not os.path.isdir(domain_path):
             continue
-        parts.append(f"--- {domain.upper()} 관련 정보 ---")
-        for h in hits:
-            # doc may be nested dict -> pretty print relevant fields
-            snippet = ""
-            if isinstance(h["doc"], dict):
-                # try common fields
-                if "description.json" in h["doc"]:
-                    snippet = json.dumps(h["doc"]["description.json"], ensure_ascii=False, indent=2)
-                else:
-                    snippet = json.dumps(h["doc"], ensure_ascii=False, indent=2)
-            else:
-                snippet = str(h["doc"])
-            parts.append(f"[{h['key']}] (score {h['score']}):\n{snippet}\n")
-    # simple polish
-    answer = "\n".join(parts)
-    # shorten to reasonable length
-    return textwrap.shorten(answer, width=3500, placeholder="\n\n…(생략)")
 
-# ====== OpenAI 통합 보조 (선택적) ======
-def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
-    if openai is None:
-        return None, "OpenAI 패키지가 설치되어 있지 않습니다."
-    if not api_key:
-        return None, "OpenAI API Key가 제공되지 않았습니다."
-    openai.api_key = api_key
+        result[domain] = {}
+
+        for file in os.listdir(domain_path):
+            if file.endswith(".json"):
+                with open(os.path.join(domain_path, file), "r", encoding="utf-8") as f:
+                    result[domain][file] = json.load(f)
+
+    return result
+
+KB = load_all_knowledge()
+
+###############################
+#     요청 모델                #
+###############################
+class ChatRequest(BaseModel):
+    message: str
+
+###############################
+#   AI에게 넘길 시스템 프롬프트 #
+###############################
+SYSTEM_PROMPT = """
+너는 요트, 야구, 기계체조 전문 지식을 가진 AI 전문가 시스템이다.
+질문을 분석해서 어떤 분야인지 자동으로 판단하고,
+아래 제공된 JSON 지식을 참고해 정확하고 자세하게 설명해라.
+
+- 요트: sailing / laser / 470 / mast / sail trim 등
+- 야구: pitching, batting, rules 등
+- 기계체조: floor, vault, pommel, rings 등
+
+만약 지식베이스에 있는 내용이면 반드시 기반해서 답변하고,
+없는 내용이면 일반적인 상식으로 설명한다.
+"""
+
+###############################
+#   ChatGPT 응답 생성 함수     #
+###############################
+def generate_answer(user_message: str):
+    knowledge_text = json.dumps(KB, ensure_ascii=False)
+
+    prompt = f"""
+[사용자 질문]
+{user_message}
+
+[지식베이스 JSON]
+{knowledge_text}
+
+위 JSON에서 관련 있는 내용을 골라서 사람이 이해하기 쉽게 정리해서 설명해줘.
+필요하면 여러 영역을 조합해도 된다.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt}
+        ],
+        max_tokens=800
+    )
+
+    return response.choices[0].message.content
+
+###############################
+#   라우팅                    #
+###############################
+@app.get("/")
+def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.post("/chat")
+def chat(req: ChatRequest):
     try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-4o-mini" if hasattr(openai, "ChatCompletion") else "gpt-4o-mini",
-            messages=[
-                {"role":"system","content":system_prompt},
-                {"role":"user","content":user_prompt}
+        answer = generate_answer(req.message)
+        return {"answer": answer}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
