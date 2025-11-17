@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import os, json
 
 app = FastAPI()
 
+# ====== static 폴더 서빙 ======
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+else:
+    print("[Warning] static 폴더가 존재하지 않습니다.")
+
 # ====== JSON 로드 함수 ======
 def load_json(file_path):
-    """파일 없거나 비어있으면 빈 dict 반환, 에러 로그 출력"""
     if not os.path.exists(file_path):
         print(f"[Warning] File not found: {file_path}")
         return {}
@@ -17,7 +23,6 @@ def load_json(file_path):
             print(f"[Warning] JSON decode error: {file_path}")
             return {}
 
-# ====== JSON 경로 생성 함수 ======
 def get_json_path(*args):
     return os.path.join(*args)
 
@@ -35,7 +40,7 @@ async def get_yacht(yacht_class: str):
         return JSONResponse({"error": "Yacht class not found"}, status_code=404)
     return JSONResponse(yacht_data[yacht_class])
 
-# ====== static 파일 서빙 ======
+# ====== index.html 서빙 ======
 @app.get("/")
 async def serve_index():
     index_path = os.path.join("static", "index.html")
