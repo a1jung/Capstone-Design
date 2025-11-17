@@ -2,51 +2,44 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 import os, json, re, textwrap
+from typing import Dict, List
 
-# Optional OpenAI
+# OpenAI optional
 try:
     import openai
-except:
+except Exception:
     openai = None
 
 app = FastAPI()
 
-# static 폴더 서빙
+# static 서빙
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ===== 유틸: JSON 안전 로드 =====
-def load_json(file_path):
-    if not os.path.exists(file_path):
-        print(f"[Warn] File not found: {file_path}")
-        return {}
-    try:
-        with open(file_path, "r", encoding="utf-8-sig") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        print(f"[Warn] JSON decode error: {file_path}")
-        return {}
+# ====== 지식베이스 로드 ======
+KB: Dict[str, Dict[str, dict]] = {}
 
-# ===== 지식베이스 로드 =====
-KB = {}
+# 예시: yacht, baseball, gymnastics 폴더 존재 시
 for domain in ["yacht", "baseball", "gymnastics"]:
     if os.path.exists(domain):
         KB[domain] = {}
         for fname in os.listdir(domain):
             if fname.lower().endswith(".json"):
-                KB[domain][fname] = load_json(os.path.join(domain, fname))
+                path = os.path.join(domain, fname)
+                try:
+                    with open(path, "r", encoding="utf-8-sig") as f:
+                        KB[domain][fname] = json.load(f)
+                except:
+                    print(f"[Warn] JSON decode error: {path}")
 
-if os.path.exists("fitness_knowledge.json"):
-    KB["misc"] = {"fitness_knowledge": load_json("fitness_knowledge.json")}
-
-# ===== 토큰화 & 점수 =====
-def tokenize(text):
+# ====== 토크나이저 & 검색 ======
+def tokenize(text: str) -> List[str]:
     if not text:
         return []
     tokens = re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))
     return [t.lower() for t in tokens]
 
-def score_doc_for_query(doc_text, query_tokens):
+def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
     if not doc_text:
         return 0
     dtoks = tokenize(doc_text)
@@ -60,7 +53,7 @@ def score_doc_for_query(doc_text, query_tokens):
                 s += 1
     return s
 
-def retrieve_relevant(domain_kb, query, top_k=3):
+def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     qtokens = tokenize(query)
     hits = []
     if not domain_kb:
@@ -70,52 +63,63 @@ def retrieve_relevant(domain_kb, query, top_k=3):
         score = score_doc_for_query(text, qtokens)
         hits.append((score, key, val))
     hits = sorted(hits, key=lambda x: x[0], reverse=True)
-    return [{"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0][:top_k]
+    return [ {"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0 ][:top_k]
 
-# ===== 로컬 답변 생성 =====
-def local_synthesize_answer(query, retrieved):
+def local_synthesize_answer(query: str, retrieved: dict) -> str:
     parts = [f"질문: {query}\n"]
     for domain, hits in retrieved.items():
-        if not hits: continue
+        if not hits:
+            continue
         parts.append(f"--- {domain.upper()} 관련 정보 ---")
         for h in hits:
             snippet = json.dumps(h["doc"], ensure_ascii=False, indent=2) if isinstance(h["doc"], dict) else str(h["doc"])
             parts.append(f"[{h['key']}] (score {h['score']}):\n{snippet}\n")
-    return textwrap.shorten("\n".join(parts), width=3500, placeholder="\n\n…(생략)")
+    answer = "\n".join(parts)
+    return textwrap.shorten(answer, width=3500, placeholder="\n\n…(생략)")
 
-# ===== OpenAI 통합 =====
-def openai_generate(query):
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not openai or not api_key:
-        return None
+# ====== OpenAI 호출 (선택) ======
+def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
+    if openai is None:
+        return None, "OpenAI 패키지가 설치되어 있지 않습니다."
+    if not api_key:
+        return None, "OpenAI API Key가 제공되지 않았습니다."
     openai.api_key = api_key
     try:
         resp = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
-                {"role":"system","content":"You are a helpful assistant."},
-                {"role":"user","content":query}
+                {"role":"system","content":system_prompt},
+                {"role":"user","content":user_prompt}
             ],
-            temperature=0.5,
-            max_tokens=512
+            max_tokens=max_tokens,
+            temperature=0.7
         )
-        return resp.choices[0].message.content
+        return resp.choices[0].message.content.strip(), None
     except Exception as e:
-        print(f"[OpenAI Error] {e}")
-        return None
+        return None, str(e)
 
-# ===== FastAPI 라우트 =====
+# ====== FastAPI 엔드포인트 ======
 @app.get("/")
-async def root():
-    if os.path.exists("templates/index.html"):
-        return FileResponse("templates/index.html")
-    return JSONResponse({"message":"Index not found"})
+async def home():
+    return FileResponse("index.html")
 
-@app.post("/ask")
-async def ask(request: Request):
-    data = await request.json()
-    query = data.get("query", "")
-    retrieved = {domain: retrieve_relevant(KB.get(domain, {}), query) for domain in KB}
-    answer_local = local_synthesize_answer(query, retrieved)
-    answer_ai = openai_generate(query)
-    return JSONResponse({"local": answer_local, "ai": answer_ai})
+@app.post("/query")
+async def query_ai(req: Request):
+    data = await req.json()
+    question = data.get("question", "").strip()
+    if not question:
+        return JSONResponse({"answer": "질문을 입력해주세요."})
+    
+    # 로컬 KB 검색
+    retrieved = {domain: retrieve_relevant(kb, question) for domain, kb in KB.items()}
+    answer = local_synthesize_answer(question, retrieved)
+    
+    # OpenAI API 키가 있으면 보조
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        system_prompt = "당신은 Capstone Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
+        openai_ans, err = openai_generate(system_prompt, question, api_key)
+        if openai_ans:
+            answer = openai_ans
+    
+    return JSONResponse({"answer": answer})
