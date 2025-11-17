@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<title>Capstone Design AI</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capstone Design 전문가 AI</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<h1>Capstone Design 전문가 AI</h1>
-<div id="chatbox"></div>
-<input type="text" id="query" placeholder="질문을 입력하세요...">
-<button id="send">전송</button>
-<script src="/static/script.js"></script>
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>Capstone Design 전문가 AI</h2>
+    </div>
+    <div id="chat-box" class="chat-box"></div>
+    <form id="chat-form" class="chat-form">
+      <input type="text" id="user-input" placeholder="질문을 입력하세요..." autocomplete="off">
+      <button type="submit">전송</button>
+    </form>
+  </div>
+  <script src="/static/script.js"></script>
 </body>
 </html>
