@@ -1,44 +1,44 @@
-﻿from fastapi import FastAPI
-import json
-from pathlib import Path
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, FileResponse
+import os, json
 
 app = FastAPI()
 
-def get_json_path(*paths):
-    return Path(__file__).parent.joinpath(*paths)
-
-def load_json(path: Path):
-    if path.exists():
-        with open(path, "r", encoding="utf-8-sig") as f:
+# ====== JSON 로드 함수 ======
+def load_json(file_path):
+    """파일 없거나 비어있으면 빈 dict 반환, 에러 로그 출력"""
+    if not os.path.exists(file_path):
+        print(f"[Warning] File not found: {file_path}")
+        return {}
+    with open(file_path, "r", encoding="utf-8-sig") as f:
+        try:
             return json.load(f)
-    return {}
+        except json.JSONDecodeError:
+            print(f"[Warning] JSON decode error: {file_path}")
+            return {}
 
-laser_data = load_json(get_json_path("yacht", "Laser", "description.json"))
-_470_data = load_json(get_json_path("yacht", "470", "description.json"))
-baseball_data = load_json(get_json_path("baseball", "baseball.json"))
-gym_men_data = load_json(get_json_path("gymnastics", "gymnastics_men.json"))
-gym_women_data = load_json(get_json_path("gymnastics", "gymnastics_women.json"))
+# ====== JSON 경로 생성 함수 ======
+def get_json_path(*args):
+    return os.path.join(*args)
 
+# ====== 요트 데이터 로드 ======
+yacht_data = {
+    "laser": load_json(get_json_path("yacht", "Laser", "description.json")),
+    "470": load_json(get_json_path("yacht", "470", "description.json"))
+}
+
+# ====== API 엔드포인트 ======
+@app.get("/api/yacht/{yacht_class}")
+async def get_yacht(yacht_class: str):
+    yacht_class = yacht_class.lower()
+    if yacht_class not in yacht_data:
+        return JSONResponse({"error": "Yacht class not found"}, status_code=404)
+    return JSONResponse(yacht_data[yacht_class])
+
+# ====== static 파일 서빙 ======
 @app.get("/")
-async def root():
-    return {"message": "Yacht Expert AI"}
-
-@app.get("/laser")
-async def laser():
-    return laser_data
-
-@app.get("/470")
-async def four_seventy():
-    return _470_data
-
-@app.get("/baseball")
-async def baseball():
-    return baseball_data
-
-@app.get("/gym/men")
-async def gymnastics_men():
-    return gym_men_data
-
-@app.get("/gym/women")
-async def gymnastics_women():
-    return gym_women_data
+async def serve_index():
+    index_path = os.path.join("static", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return JSONResponse({"error": "index.html not found"}, status_code=404)
