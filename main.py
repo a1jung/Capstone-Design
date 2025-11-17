@@ -5,11 +5,8 @@ import os, json
 
 app = FastAPI()
 
-# ====== static 폴더 서빙 ======
-if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-else:
-    print("[Warning] static 폴더가 존재하지 않습니다.")
+# ====== Static 폴더 서빙 ======
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ====== JSON 로드 함수 ======
 def load_json(file_path):
@@ -35,10 +32,10 @@ yacht_data = {
 # ====== API 엔드포인트 ======
 @app.get("/api/yacht/{yacht_class}")
 async def get_yacht(yacht_class: str):
-    yacht_class = yacht_class.lower()
-    if yacht_class not in yacht_data:
+    yacht_class_lower = yacht_class.lower()
+    if yacht_class_lower not in yacht_data:
         return JSONResponse({"error": "Yacht class not found"}, status_code=404)
-    return JSONResponse(yacht_data[yacht_class])
+    return JSONResponse(yacht_data[yacht_class_lower])
 
 # ====== index.html 서빙 ======
 @app.get("/")
