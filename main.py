@@ -1,3 +1,5 @@
+(여기부터 전체 코드 시작)
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +21,7 @@ if os.path.exists("static"):
 # ====== 지식베이스 로드 ======
 KB: Dict[str, Dict[str, dict]] = {}
 
+# 예시: yacht, baseball, gymnastics 폴더 존재 시
 for domain in ["yacht", "baseball", "gymnastics"]:
     if os.path.exists(domain):
         KB[domain] = {}
@@ -62,7 +65,7 @@ def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
         score = score_doc_for_query(text, qtokens)
         hits.append((score, key, val))
     hits = sorted(hits, key=lambda x: x[0], reverse=True)
-    return [{"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0][:top_k]
+    return [ {"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0 ][:top_k]
 
 def local_synthesize_answer(query: str, retrieved: dict) -> str:
     parts = [f"질문: {query}\n"]
@@ -87,8 +90,8 @@ def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_toke
         resp = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role":"system","content":system_prompt},
+                {"role":"user","content":user_prompt}
             ],
             max_tokens=max_tokens,
             temperature=0.7
@@ -100,7 +103,7 @@ def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_toke
 # ====== FastAPI 엔드포인트 ======
 @app.get("/")
 async def home():
-    return FileResponse("index.html")
+    return FileResponse("templates/index.html")
 
 @app.post("/query")
 async def query_ai(req: Request):
@@ -108,25 +111,19 @@ async def query_ai(req: Request):
     question = data.get("question", "").strip()
     if not question:
         return JSONResponse({"answer": "질문을 입력해주세요."})
-
+    
     # 로컬 KB 검색
     retrieved = {domain: retrieve_relevant(kb, question) for domain, kb in KB.items()}
     answer = local_synthesize_answer(question, retrieved)
-
-    # OpenAI 보조 답변
+    
+    # OpenAI API 키가 있으면 보조
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key:
-        system_prompt = "너는 스포츠 전문가 AI다. 사용자의 질문과 로컬 지식베이스 내용을 참고해 정확한 답변을 제공해라."
-        full_prompt = f"사용자 질문:\n{question}\n\n로컬 문서 기반 요약 정보:\n{answer}"
-        ai_answer, err = openai_generate(system_prompt, full_prompt, api_key)
-        if ai_answer:
-            answer = ai_answer
-
-    return JSONResponse({"answer": answer})
-
         system_prompt = "당신은 Capstone Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
-        openai_ans, err = openai_generate(system_prompt, question, api_key)
-        if openai_ans:
-            answer = openai_ans
+        gpt_answer, err = openai_generate(system_prompt, answer, api_key, max_tokens=400)
+        if gpt_answer:
+            answer = gpt_answer
     
     return JSONResponse({"answer": answer})
+
+(여기까지 전체 코드 끝)
