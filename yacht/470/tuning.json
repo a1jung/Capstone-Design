@@ -1,0 +1,47 @@
+{
+  "mast_settings": {
+    "rake": {
+      "aft_rake": "포인트 향상, 업윈드 안정",
+      "forward_rake": "파워 증가, 약풍 가속 강화"
+    },
+    "prebend": {
+      "light_air": "프리벤드 적게 → 세일 깊이 확보",
+      "strong_air": "프리벤드 증가 → 세일 얕게 + 탈력 용이"
+    }
+  },
+  "rig_tension": {
+    "high_tension": "지브 앞전 타이트, 포인트 상승, 강풍에서 안정",
+    "low_tension": "지브 깊어져 약풍 가속 증가, 리그 유연성 상승"
+  },
+  "jib_tuning": {
+    "jib_car": {
+      "forward": "세일 깊이 증가, 파워 증가",
+      "aft": "리치 열림, 강풍 안정"
+    },
+    "jib_sheet": "트위스트를 결정하는 핵심 조절 요소"
+  },
+  "main_tuning": {
+    "vang": {
+      "strong": "상단 꼬임 억제, 강풍 안정",
+      "light": "트위스트 확보, 약풍 공기 흐름 유지"
+    },
+    "cunningham": {
+      "tight": "드래프트 전진, 강풍에서 컨트롤 용이",
+      "loose": "세일 깊이 증가, 약풍 파워 증가"
+    },
+    "outhaul": "세일 풋 깊이를 풍속별로 조절하며 팀별 세팅표 존재"
+  },
+  "spinnaker": {
+    "angle": "보트 속도 유지의 핵심",
+    "sheet_tension": "플러터 직전의 텐션이 이상적",
+    "wave_surfing": "파도 헤더·러프 리듬과 맞춰 VMG 확보"
+  },
+  "foils": {
+    "centerboard": {
+      "upwind": "100% 내려 안정성·포인트 극대화",
+      "downwind": "부분 상승해 파워 유지",
+      "strong_warning": "강풍에서 과도한 상승은 위험"
+    },
+    "rudder": "정밀 표면 가공이 중요하며, 불필요한 드래그를 줄여 조타 감각을 높인다."
+  }
+}
