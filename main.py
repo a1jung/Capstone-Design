@@ -12,14 +12,21 @@ except:
 
 app = FastAPI()
 
-# ====== 경로 설정 ======
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # main.py 기준
+# templates/index.html 경로 절대 지정
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # static 서빙
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/")
+async def home():
+    html_path = os.path.join(TEMPLATES_DIR, "index.html")
+    if os.path.exists(html_path):
+        return FileResponse(html_path)
+    return {"error": "index.html not found on server"}
 
 # ====== 지식베이스 로드 ======
 KB: Dict[str, Dict[str, dict]] = {}
