@@ -1,0 +1,50 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "men": [
+    {
+      "name": "마루운동",
+      "english": "Floor Exercise",
+      "description": "12m×12m 매트 위에서 음악 없이 진행되는 자유 연기.",
+      "features": "아크로바틱 동작(앞·뒤 공중돌기, 비틀기 등)과 유연성, 표현력이 중요.",
+      "evaluation": "연기의 난도, 연속성, 공간 활용, 착지 안정성"
+    },
+    {
+      "name": "안마",
+      "english": "Pommel Horse",
+      "description": "말 모양의 기구 위에서 손으로만 지탱하며 다리를 회전시키는 종목.",
+      "features": "하체가 기구에 닿지 않아야 하며, 리듬감과 연속 동작이 핵심.",
+      "evaluation": "연속성, 좌우 이동의 균형, 체중 이동의 정확성"
+    },
+    {
+      "name": "링",
+      "english": "Still Rings",
+      "description": "공중에 매달린 두 개의 링을 이용해 정적·동적 동작을 수행.",
+      "features": "상체 힘과 코어 안정성이 매우 중요. 흔들림이 없을수록 고득점.",
+      "evaluation": "정지자세의 안정성, 흔들림 없는 마무리, 착지 정확도"
+    },
+    {
+      "name": "도마",
+      "english": "Vault",
+      "description": "25m의 도약로를 달려 나와 도마를 짚고 공중 기술을 펼친 후 착지.",
+      "features": "짧은 순간의 폭발적인 파워와 공중 감각이 중요.",
+      "evaluation": "공중 난도, 비행거리, 도약 속도, 착지의 안정성"
+    },
+    {
+      "name": "평행봉",
+      "english": "Parallel Bars",
+      "description": "두 개의 막대를 이용해 앞뒤·상하로 이동하며 기술을 수행.",
+      "features": "상체 힘과 균형, 리듬감이 요구됨.",
+      "evaluation": "동작의 연속성, 체중 중심의 이동, 착지 정확도"
+    },
+    {
+      "name": "철봉",
+      "english": "Horizontal Bar",
+      "description": "단 하나의 막대 위에서 스윙·회전·이탈 착지를 하는 종목.",
+      "features": "공중에서의 회전감각, 그립력, 담대함이 필요.",
+      "evaluation": "스윙의 크기, 회전 속도, 기술 난이도, 착지의 정확성"
+    }
+  ]
+}
