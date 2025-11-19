@@ -21,7 +21,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# ====== KB 로드 ======
+# ====== 지식베이스 로드 ======
 KB: Dict[str, Dict[str, dict]] = {}
 for domain in ["yacht", "baseball", "gymnastics"]:
     domain_path = os.path.join(BASE_DIR, domain)
@@ -33,14 +33,19 @@ for domain in ["yacht", "baseball", "gymnastics"]:
                 try:
                     with open(fpath, "r", encoding="utf-8-sig") as f:
                         KB[domain][fname] = json.load(f)
-                except:
-                    print(f"[Warn] JSON decode error: {fpath}")
+                except json.JSONDecodeError:
+                    print(f"[Warn] JSON decode error, skipping: {fpath}")
+                    KB[domain][fname] = {}  # 빈 dict로 대체
+                except Exception as e:
+                    print(f"[Warn] Unknown error reading {fpath}: {e}")
+                    KB[domain][fname] = {}
 
 # ====== 토크나이저 & 검색 ======
 def tokenize(text: str) -> List[str]:
     return [t.lower() for t in re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))] if text else []
 
 def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
+    if not doc_text: return 0
     dtoks = tokenize(doc_text)
     s = 0
     dtokset = set(dtoks)
@@ -53,7 +58,10 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
 def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     qtokens = tokenize(query)
     hits = []
+    if not domain_kb: return []
     for key, val in domain_kb.items():
+        if not val:  # 빈 dict 무시
+            continue
         text = json.dumps(val, ensure_ascii=False) if isinstance(val, dict) else str(val)
         score = score_doc_for_query(text, qtokens)
         hits.append((score, key, val))
@@ -72,7 +80,8 @@ def local_synthesize_answer(query: str, retrieved: dict) -> str:
 
 # ====== OpenAI 호출 (선택) ======
 def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
-    if not openai or not api_key: return None, "OpenAI 미사용"
+    if not openai: return None, "OpenAI 패키지가 설치되지 않음."
+    if not api_key: return None, "OpenAI API Key 없음."
     openai.api_key = api_key
     try:
         resp = openai.ChatCompletion.create(
@@ -91,20 +100,24 @@ async def home():
     html_path = os.path.join(TEMPLATES_DIR, "index.html")
     if os.path.exists(html_path):
         return FileResponse(html_path)
-    return {"error": "index.html not found"}
+    return JSONResponse({"error": "index.html not found on server"}, status_code=404)
 
 @app.post("/query")
 async def query_ai(req: Request):
-    data = await req.json()
-    question = data.get("question", "").strip()
-    if not question: return JSONResponse({"answer": "질문을 입력해주세요."})
+    try:
+        data = await req.json()
+        question = data.get("question", "").strip()
+        if not question:
+            return JSONResponse({"answer": "질문을 입력해주세요."})
+    except Exception:
+        return JSONResponse({"answer": "잘못된 요청입니다. JSON 형식을 확인하세요."})
 
     retrieved = {domain: retrieve_relevant(kb, question) for domain, kb in KB.items()}
     answer = local_synthesize_answer(question, retrieved)
 
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key:
-        system_prompt = "당신은 Capstone-Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
+        system_prompt = "당신은 Capstone Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
         gpt_answer, err = openai_generate(system_prompt, answer, api_key, max_tokens=400)
         if gpt_answer: answer = gpt_answer
 
