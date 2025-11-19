@@ -1,0 +1,21 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "position": "Infielder",
+  "training": [
+    {
+      "name": "순발력 및 민첩성 훈련",
+      "description": "타구 반응 속도를 높이기 위해 사이드 스텝, 라더 훈련, 짧은 거리 방향 전환 훈련을 실시한다."
+    },
+    {
+      "name": "코어 안정성 향상",
+      "description": "포구 및 송구 동작 시 균형을 유지하기 위한 복부 중심 안정화 운동을 강화한다."
+    },
+    {
+      "name": "타격 타이밍 훈련",
+      "description": "경기 상황을 가정한 리듬 타이밍 훈련으로, 타자의 손과 눈의 협응력을 높인다."
+    }
+  ]
+}
