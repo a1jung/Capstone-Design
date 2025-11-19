@@ -1,0 +1,21 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "position": "Outfielder",
+  "training": [
+    {
+      "name": "순간 스피드 및 방향 전환 훈련",
+      "description": "넓은 수비 범위를 커버하기 위해 전력 질주와 급격한 방향 전환 훈련을 반복한다."
+    },
+    {
+      "name": "어깨 가동성과 송구 파워 향상 훈련",
+      "description": "어깨 회전 범위를 넓히고 강한 송구를 위한 밴드 및 메디신볼 훈련을 수행한다."
+    },
+    {
+      "name": "타격 타이밍 및 집중력 훈련",
+      "description": "경기 후반 집중력 저하를 막기 위한 반응 훈련과 타이밍 조절 드릴을 포함한다."
+    }
+  ]
+}
