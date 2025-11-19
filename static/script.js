@@ -1,15 +1,10 @@
-// Capstone-Design/static/script.js
-
-const chat = document.getElementById("chat");
+const messagesDiv = document.getElementById("messages");
 const questionInput = document.getElementById("question");
-const sendBtn = document.querySelector("#chat button");
 
-function appendMessage(text, who = "bot") {
+function appendMessage(text, who="bot"){
   const el = document.createElement("div");
   el.className = "msg " + (who === "user" ? "user" : "bot");
-
-  // 줄바꿈 포함 메시지 처리
-  if (text.includes("\n")) {
+  if(text.includes("\n")){
     const pre = document.createElement("pre");
     pre.style.whiteSpace = "pre-wrap";
     pre.textContent = text;
@@ -17,56 +12,40 @@ function appendMessage(text, who = "bot") {
   } else {
     el.textContent = text;
   }
-
-  chat.appendChild(el);
-  chat.scrollTop = chat.scrollHeight;
+  messagesDiv.appendChild(el);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-async function sendQuestion() {
+async function sendQuestion(){
   const q = questionInput.value.trim();
-  if (!q) return;
-
+  if(!q) return;
   appendMessage(q, "user");
   questionInput.value = "";
-  appendMessage("응답 생성 중...", "bot"); // 임시 로딩 텍스트
-
-  // 마지막 봇 메시지 교체용
+  appendMessage("응답 생성 중...", "bot");
   const botMsgs = document.querySelectorAll(".msg.bot");
-  const loadingEl = botMsgs[botMsgs.length - 1];
+  const loadingEl = botMsgs[botMsgs.length-1];
 
-  try {
+  try{
     const resp = await fetch("/query", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q }),
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({question:q})
     });
-
     const data = await resp.json();
     loadingEl.remove();
-
-    if (resp.ok && data.answer) {
-      appendMessage(data.answer, "bot");
-    } else {
-      appendMessage("서버 오류: 응답을 받지 못했습니다.", "bot");
-      console.error(data);
-    }
-  } catch (e) {
+    appendMessage(data.answer || "서버 오류: 응답 없음", "bot");
+  }catch(e){
     loadingEl.remove();
-    appendMessage("네트워크 오류: " + e.message, "bot");
-    console.error(e);
+    appendMessage("네트워크 오류: "+e.message, "bot");
   }
 }
 
-// Enter 키로 전송 (Shift+Enter는 줄바꿈)
-questionInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
+questionInput.addEventListener("keydown",(e)=>{
+  if(e.key==="Enter" && !e.shiftKey){
     e.preventDefault();
     sendQuestion();
   }
 });
-
-// 전송 버튼 클릭 이벤트
-sendBtn.addEventListener("click", sendQuestion);
 
 // 초기 환영 메시지
 appendMessage("안녕하세요! Capstone-Design 전문가 AI입니다. 질문을 입력해주세요.", "bot");
