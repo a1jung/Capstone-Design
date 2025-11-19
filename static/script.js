@@ -1,51 +1,43 @@
-const messagesDiv = document.getElementById("messages");
-const questionInput = document.getElementById("question");
-
-function appendMessage(text, who="bot"){
-  const el = document.createElement("div");
-  el.className = "msg " + (who === "user" ? "user" : "bot");
-  if(text.includes("\n")){
-    const pre = document.createElement("pre");
-    pre.style.whiteSpace = "pre-wrap";
-    pre.textContent = text;
-    el.appendChild(pre);
-  } else {
-    el.textContent = text;
-  }
-  messagesDiv.appendChild(el);
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+// 메시지 출력 함수
+function addMessage(text, sender) {
+    const messages = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.classList.add("message", sender);
+    div.innerText = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
 }
 
-async function sendQuestion(){
-  const q = questionInput.value.trim();
-  if(!q) return;
-  appendMessage(q, "user");
-  questionInput.value = "";
-  appendMessage("응답 생성 중...", "bot");
-  const botMsgs = document.querySelectorAll(".msg.bot");
-  const loadingEl = botMsgs[botMsgs.length-1];
-
-  try{
-    const resp = await fetch("/query", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({question:q})
-    });
-    const data = await resp.json();
-    loadingEl.remove();
-    appendMessage(data.answer || "서버 오류: 응답 없음", "bot");
-  }catch(e){
-    loadingEl.remove();
-    appendMessage("네트워크 오류: "+e.message, "bot");
-  }
-}
-
-questionInput.addEventListener("keydown",(e)=>{
-  if(e.key==="Enter" && !e.shiftKey){
-    e.preventDefault();
-    sendQuestion();
-  }
+// 전송 버튼 이벤트
+document.getElementById("sendBtn").addEventListener("click", sendMsg);
+document.getElementById("userInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMsg();
 });
 
-// 초기 환영 메시지
-appendMessage("안녕하세요! Capstone-Design 전문가 AI입니다. 질문을 입력해주세요.", "bot");
+async function sendMsg() {
+    const input = document.getElementById("userInput");
+    const text = input.value.trim();
+    if (!text) return;
+
+    // 사용자 메시지 오른쪽
+    addMessage(text, "user");
+
+    input.value = "";
+
+    try {
+        // 실제 AI 서버로 요청 보내는 부분 (너의 API URL로 수정)
+        const res = await fetch("http://localhost:8000/ask", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ question: text })
+        });
+
+        const data = await res.json();
+
+        // AI 응답 왼쪽
+        addMessage(data.answer, "ai");
+
+    } catch (error) {
+        addMessage("오류가 발생했습니다. 다시 시도해주세요.", "ai");
+    }
+}
