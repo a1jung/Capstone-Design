@@ -1,83 +1,71 @@
-/* Capstone-Design/static/style.css */
-
-/* 전체 기본 스타일 */
 body {
-    font-family: 'Noto Sans', sans-serif;
-    background-color: #f4f4f9;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #f9f9f9;
 }
 
 h1 {
-    margin-top: 30px;
     color: #333;
 }
 
-p {
-    color: #555;
-    margin-bottom: 20px;
-}
-
-/* 채팅 박스 */
 #chat {
-    width: 90%;
-    max-width: 600px;
-    height: 500px;
     border: 1px solid #ccc;
-    border-radius: 10px;
-    background-color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff;
+    width: 600px;
+    max-width: 90%;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
-    padding: 10px;
-    overflow-y: auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    height: 400px;
 }
 
-/* 메시지 스타일 */
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
 .msg {
-    padding: 8px 12px;
     margin: 5px 0;
-    border-radius: 15px;
+    padding: 6px 10px;
+    border-radius: 5px;
     max-width: 80%;
     word-wrap: break-word;
 }
 
-.msg.bot {
-    background-color: #e0f0ff;
-    align-self: flex-start;
-}
-
 .msg.user {
-    background-color: #c8ffc8;
+    background: #d0f0ff;
     align-self: flex-end;
 }
 
-/* 입력창 영역 */
-#chat input[type="text"] {
-    width: calc(100% - 90px);
-    padding: 8px;
-    margin-top: auto;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 16px;
-    outline: none;
+.msg.bot {
+    background: #eee;
+    align-self: flex-start;
 }
 
-#chat button {
-    width: 70px;
-    margin-left: 10px;
-    padding: 8px;
+#input-bar {
+    display: flex;
+    gap: 5px;
+}
+
+#question {
+    flex: 1;
+    padding: 6px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+#sendBtn {
+    padding: 6px 12px;
+    border-radius: 5px;
     border: none;
-    border-radius: 8px;
-    background-color: #4CAF50;
-    color: #fff;
-    font-size: 16px;
+    background: #4caf50;
+    color: white;
     cursor: pointer;
 }
 
-#chat button:hover {
-    background-color: #45a049;
+#sendBtn:hover {
+    background: #45a049;
 }
