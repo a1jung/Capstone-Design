@@ -1,0 +1,36 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "women": [
+    {
+      "name": "마루운동",
+      "english": "Floor Exercise",
+      "description": "남자와 달리 음악에 맞춰 연기하는 자유 종목.",
+      "features": "기술 + 표현력 + 예술성의 조화가 중요.",
+      "evaluation": "기술의 난도, 리듬감, 연기 표현, 착지 안정성"
+    },
+    {
+      "name": "도마",
+      "english": "Vault",
+      "description": "남자 종목과 동일한 방식으로 수행되지만, 주로 유르첸코 기술을 많이 사용.",
+      "features": "달리기 속도와 도약력, 공중감각이 핵심.",
+      "evaluation": "도약 강도, 비행 높이, 착지 자세"
+    },
+    {
+      "name": "이단평행봉",
+      "english": "Uneven Bars",
+      "description": "높이가 다른 두 봉을 번갈아 사용하며 스윙, 이탈, 연결 동작을 수행.",
+      "features": "어깨 유연성과 그립력, 공중 연결 기술이 중요.",
+      "evaluation": "연결 난이도, 동작의 흐름, 착지의 안정성"
+    },
+    {
+      "name": "평균대",
+      "english": "Balance Beam",
+      "description": "폭 10cm의 좁은 빔 위에서 점프, 회전, 균형 기술을 수행.",
+      "features": "집중력, 균형감각, 심리적 안정이 매우 중요.",
+      "evaluation": "동작의 안정성, 연결성, 예술적 표현력, 낙상 여부"
+    }
+  ]
+}
