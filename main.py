@@ -12,7 +12,7 @@ except:
 
 app = FastAPI()
 
-# templates/index.html 경로 절대 지정
+# ====== 경로 설정 ======
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -21,14 +21,7 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-@app.get("/")
-async def home():
-    html_path = os.path.join(TEMPLATES_DIR, "index.html")
-    if os.path.exists(html_path):
-        return FileResponse(html_path)
-    return {"error": "index.html not found on server"}
-
-# ====== 지식베이스 로드 ======
+# ====== KB 로드 ======
 KB: Dict[str, Dict[str, dict]] = {}
 for domain in ["yacht", "baseball", "gymnastics"]:
     domain_path = os.path.join(BASE_DIR, domain)
@@ -48,7 +41,6 @@ def tokenize(text: str) -> List[str]:
     return [t.lower() for t in re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))] if text else []
 
 def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
-    if not doc_text: return 0
     dtoks = tokenize(doc_text)
     s = 0
     dtokset = set(dtoks)
@@ -61,7 +53,6 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
 def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     qtokens = tokenize(query)
     hits = []
-    if not domain_kb: return []
     for key, val in domain_kb.items():
         text = json.dumps(val, ensure_ascii=False) if isinstance(val, dict) else str(val)
         score = score_doc_for_query(text, qtokens)
@@ -81,8 +72,7 @@ def local_synthesize_answer(query: str, retrieved: dict) -> str:
 
 # ====== OpenAI 호출 (선택) ======
 def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
-    if not openai: return None, "OpenAI 패키지가 설치되지 않음."
-    if not api_key: return None, "OpenAI API Key 없음."
+    if not openai or not api_key: return None, "OpenAI 미사용"
     openai.api_key = api_key
     try:
         resp = openai.ChatCompletion.create(
@@ -101,7 +91,7 @@ async def home():
     html_path = os.path.join(TEMPLATES_DIR, "index.html")
     if os.path.exists(html_path):
         return FileResponse(html_path)
-    return {"error": "index.html not found on server"}
+    return {"error": "index.html not found"}
 
 @app.post("/query")
 async def query_ai(req: Request):
@@ -114,7 +104,7 @@ async def query_ai(req: Request):
 
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key:
-        system_prompt = "당신은 Capstone Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
+        system_prompt = "당신은 Capstone-Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
         gpt_answer, err = openai_generate(system_prompt, answer, api_key, max_tokens=400)
         if gpt_answer: answer = gpt_answer
 
