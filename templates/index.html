@@ -1,0 +1,31 @@
+<!-- templates/index.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Capstone Design 전문가 AI</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>Capstone-Design 전문가 AI</h1>
+      <p class="subtitle">요트·야구·기계체조 지식을 통합해 채팅형으로 답변합니다. Enter 눌러 전송하세요.</p>
+    </header>
+
+    <section id="chat" class="chat-window" aria-live="polite"></section>
+
+    <form id="askForm" class="input-area" onsubmit="return false;">
+      <input id="question" type="text" placeholder="질문을 입력하세요..." autocomplete="off" />
+      <button id="sendBtn" type="button">전송</button>
+    </form>
+
+    <footer class="footer-note">
+      <small>OpenAI 보조를 사용하려면 서버에 OPENAI_API_KEY 환경변수를 설정하세요.</small>
+    </footer>
+  </main>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
