@@ -11,6 +11,15 @@ body {
     flex-direction: column;
 }
 
+.header {
+    padding: 18px;
+    background: #4A90E2;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+}
+
 .messages {
     flex: 1;
     overflow-y: auto;
