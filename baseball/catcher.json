@@ -1,0 +1,21 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "position": "Catcher",
+  "training": [
+    {
+      "name": "하체 근지구력 및 코어 안정성 강화",
+      "description": "낮은 자세를 오래 유지하기 위한 스쿼트 변형 훈련과 복부·요추 안정성 운동을 병행한다."
+    },
+    {
+      "name": "순발력 + 반응속도 향상 훈련",
+      "description": "공의 궤적을 빠르게 인지하고 블로킹 및 송구로 연결하기 위해 반응 훈련과 짧은 거리의 폭발적 스타트 훈련을 실시한다."
+    },
+    {
+      "name": "어깨 가동성 및 회복 훈련",
+      "description": "잦은 송구 동작 후 어깨 피로를 최소화하기 위한 밴드 스트레칭 및 소근육 강화 운동을 진행한다."
+    }
+  ]
+}
