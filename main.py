@@ -1,4 +1,3 @@
-(여기부터 전체 코드 시작)
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
