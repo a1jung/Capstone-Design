@@ -1,0 +1,21 @@
+{
+  "author": "j40629542",
+  "last_commit": "update main",
+  "last_commit_hash": "4c49ae4",
+  "last_commit_date": "2 days ago",
+  "position": "Pitcher",
+  "training": [
+    {
+      "name": "어깨 가동성 향상 훈련",
+      "description": "회전근개 근육 강화 및 어깨 관절의 가동 범위를 넓혀 부상 방지와 구속 향상을 동시에 노린다."
+    },
+    {
+      "name": "코어 안정성 강화",
+      "description": "투구 시 하체의 힘을 효율적으로 전달하기 위해 복부·골반 중심의 안정성 훈련을 실시한다."
+    },
+    {
+      "name": "순발력 향상 훈련",
+      "description": "피칭 동작 전 하체 폭발력과 중심 이동 속도를 높이기 위한 점프 트레이닝 및 메디신볼 드릴을 포함한다."
+    }
+  ]
+}
