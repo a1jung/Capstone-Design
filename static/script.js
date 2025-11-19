@@ -18,18 +18,19 @@ async function sendMessage() {
     input.value = "";
 
     try {
-        const res = await fetch("/ask", {
+        const response = await fetch("/chat", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: text }),
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: text })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
-        addMessage(data.answer || "죄송합니다, 관련 정보를 찾을 수 없습니다.", "ai");
-
-    } catch (err) {
-        addMessage("서버와 연결할 수 없습니다.", "ai");
+        addMessage(data.reply, "ai");
+    } catch (e) {
+        addMessage("서버 오류가 발생했습니다.", "ai");
     }
 }
 
