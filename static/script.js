@@ -20,7 +20,7 @@ async function sendMessage() {
     input.value = "";
 
     addMessage("응답 생성 중...", "ai");
-    const aiDiv = messages.querySelector(".message.ai:last-child");
+    const aiDiv = messages.lastElementChild;
 
     try {
         const resp = await fetch("/query", {
