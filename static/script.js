@@ -23,7 +23,7 @@ async function sendMessage() {
     const aiDiv = messages.lastElementChild;
 
     try {
-        const resp = await fetch("/query", {
+        const resp = await fetch("https://capstone-design-7unu.onrender.com/query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question: text })
@@ -37,6 +37,7 @@ async function sendMessage() {
     }
 }
 
+// 버튼 및 엔터 이벤트
 sendBtn.addEventListener("click", sendMessage);
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendMessage();
