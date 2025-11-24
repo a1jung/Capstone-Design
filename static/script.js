@@ -27,8 +27,8 @@ async function sendMessage() {
         });
 
         const data = await response.json();
-
         addMessage(data.reply, "ai");
+
     } catch (e) {
         addMessage("서버 오류가 발생했습니다.", "ai");
     }
