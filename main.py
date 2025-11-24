@@ -52,27 +52,24 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
             if qt in dt: s += 1
     return s
 
-# 질문 언어/도메인 분류
+# 질문 도메인 분류
 def classify_domain(question: str) -> List[str]:
     q = question.lower()
-    # 요트 관련 키워드
     if any(k in q for k in ["요트","laser","470","yacht"]):
         return ["yacht"]
-    # 야구 관련 키워드
     elif any(k in q for k in ["야구","투수","포수","내야","외야","baseball"]):
         return ["baseball"]
-    # 체조 관련 키워드
     elif any(k in q for k in ["체조","평행봉","마루","도마","링","gymnastics"]):
         return ["gymnastics"]
-    # 모르면 모든 도메인 검색
     return ["yacht","baseball","gymnastics"]
 
+# KB 검색
 def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     qtokens = tokenize(query)
     hits = []
     if not domain_kb: return []
     for key, val in domain_kb.items():
-        # 모든 하위 값 문자열 병합
+        # JSON 모든 하위 텍스트 병합
         def flatten_text(obj):
             if isinstance(obj, dict):
                 return " ".join([flatten_text(v) for v in obj.values()])
@@ -91,17 +88,20 @@ def summarize_doc(doc: dict) -> str:
     if not isinstance(doc, dict):
         return str(doc)
     parts = []
-    if "overview" in doc: parts.append(doc["overview"])
-    if "function" in doc: parts.append(doc["function"])
-    if "equipment" in doc:
-        for k, v in doc["equipment"].items():
-            parts.append(f"{k}: {v.get('description', '')}")
+    # overview, function, wind_ranges, cunningham 등 핵심만
+    if "overview" in doc: parts.append(f"- {doc['overview']}")
+    if "function" in doc: parts.append(f"- 기능: {doc['function']}")
     if "wind_ranges" in doc:
-        parts.append("바람 범위: " + ", ".join([f"{k}={v}" for k,v in doc["wind_ranges"].items()]))
+        parts.append("- 바람 범위: " + ", ".join([f"{k}={v}" for k,v in doc["wind_ranges"].items()]))
     if "cunningham" in doc and isinstance(doc["cunningham"], dict):
-        parts.append("커닝햄 가이드: " + ", ".join([f"{k}={v}" for k,v in doc["cunningham"].items()]))
+        parts.append("- 커닝햄 가이드: " + ", ".join([f"{k}={v}" for k,v in doc["cunningham"].items()]))
+    if "equipment" in doc:
+        for k,v in doc["equipment"].items():
+            desc = v.get("description","") if isinstance(v, dict) else str(v)
+            if desc: parts.append(f"- {k}: {desc}")
     return "\n".join(parts)
 
+# 답변 합성
 def local_synthesize_answer(query: str, retrieved: dict) -> str:
     parts = []
     found = False
@@ -111,13 +111,13 @@ def local_synthesize_answer(query: str, retrieved: dict) -> str:
         parts.append(f"--- {domain.upper()} 관련 정보 ---")
         for h in hits:
             snippet = summarize_doc(h["doc"])
-            parts.append(f"{snippet}")
+            parts.append(snippet)
     if not found:
         return "죄송합니다, 관련 정보를 찾을 수 없습니다."
     parts.append("\n추가 설명이나 세부 정보가 필요하면 알려주세요!")
     return textwrap.shorten("\n".join(parts), width=3500, placeholder="\n\n…(생략)")
 
-# OpenAI 호출 (선택)
+# OpenAI 호출
 def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
     if not openai: return None, "OpenAI 패키지가 설치되지 않음."
     if not api_key: return None, "OpenAI API Key 없음."
