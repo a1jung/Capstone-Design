@@ -3,6 +3,7 @@ from typing import Dict, List
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 
 # OpenAI optional
 try:
@@ -11,6 +12,15 @@ except:
     openai = None
 
 app = FastAPI()
+
+# 🔹 CORS 설정 (배포 환경 브라우저 요청 허용)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 배포용: 모든 도메인 허용
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 경로 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -99,7 +109,6 @@ async def home():
         return FileResponse(html_path)
     return {"error": "index.html not found on server"}
 
-# Chat 요청 처리
 @app.post("/query")
 async def query_ai(req: Request):
     data = await req.json()
