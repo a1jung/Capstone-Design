@@ -18,17 +18,17 @@ async function sendMessage() {
     input.value = "";
 
     try {
-        const response = await fetch("/chat", {
+        const response = await fetch("/query", {   // ← 여기 /chat ➜ /query 로 변경!
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ question: text })  // ← message가 아니라 question!
         });
 
         const data = await response.json();
-        addMessage(data.reply, "ai");
 
+        addMessage(data.answer, "ai"); // ← data.reply → data.answer로 변경
     } catch (e) {
         addMessage("서버 오류가 발생했습니다.", "ai");
     }
