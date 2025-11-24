@@ -20,20 +20,22 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# KB 로드
+# KB 로드 (하위 폴더 재귀 탐색)
 KB: Dict[str, Dict[str, dict]] = {}
 for domain in ["yacht", "baseball", "gymnastics"]:
     domain_path = os.path.join(BASE_DIR, domain)
     if os.path.exists(domain_path):
         KB[domain] = {}
-        for fname in os.listdir(domain_path):
-            if fname.lower().endswith(".json"):
-                fpath = os.path.join(domain_path, fname)
-                try:
-                    with open(fpath, "r", encoding="utf-8-sig") as f:
-                        KB[domain][fname] = json.load(f)
-                except:
-                    print(f"[Warn] JSON decode error: {fpath}")
+        for root, dirs, files in os.walk(domain_path):
+            for fname in files:
+                if fname.lower().endswith(".json"):
+                    fpath = os.path.join(root, fname)
+                    rel_path = os.path.relpath(fpath, domain_path)  # 하위 폴더 포함
+                    try:
+                        with open(fpath, "r", encoding="utf-8-sig") as f:
+                            KB[domain][rel_path] = json.load(f)
+                    except:
+                        print(f"[Warn] JSON decode error: {fpath}")
 
 # 토크나이저
 def tokenize(text: str) -> List[str]:
@@ -50,13 +52,14 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
             if qt in dt: s += 1
     return s
 
+# 한국어 질문 분류
 def classify_domain(question: str) -> List[str]:
     q = question.lower()
     if any(k in q for k in ["요트","laser","470"]):
         return ["yacht"]
     elif any(k in q for k in ["야구","투수","포수","내야","외야"]):
         return ["baseball"]
-    elif any(k in q for k in ["체조","평행봉","마루","도마","안마","링"]):
+    elif any(k in q for k in ["체조","평행봉","마루","도마","링"]):
         return ["gymnastics"]
     else:
         return ["yacht","baseball","gymnastics"]  # fallback
@@ -72,8 +75,8 @@ def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     hits = sorted(hits, key=lambda x: x[0], reverse=True)
     return [{"score": h[0], "key": h[1], "doc": h[2]} for h in hits if h[0] > 0][:top_k]
 
+# 핵심 요약
 def summarize_doc(doc: dict) -> str:
-    # 핵심 요약만 추출
     if not isinstance(doc, dict):
         return str(doc)
     parts = []
