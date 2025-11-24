@@ -99,6 +99,7 @@ async def home():
         return FileResponse(html_path)
     return {"error": "index.html not found on server"}
 
+# Chat 요청 처리
 @app.post("/query")
 async def query_ai(req: Request):
     data = await req.json()
