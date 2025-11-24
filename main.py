@@ -30,14 +30,14 @@ for domain in ["yacht", "baseball", "gymnastics"]:
             for fname in files:
                 if fname.lower().endswith(".json"):
                     fpath = os.path.join(root, fname)
-                    rel_path = os.path.relpath(fpath, domain_path)  # 하위 폴더 포함
+                    rel_path = os.path.relpath(fpath, domain_path)
                     try:
                         with open(fpath, "r", encoding="utf-8-sig") as f:
                             KB[domain][rel_path] = json.load(f)
                     except:
                         print(f"[Warn] JSON decode error: {fpath}")
 
-# 토크나이저
+# 토크나이저 (한글/영문 포함)
 def tokenize(text: str) -> List[str]:
     return [t.lower() for t in re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))] if text else []
 
@@ -52,24 +52,35 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
             if qt in dt: s += 1
     return s
 
-# 한국어 질문 분류
+# 질문 언어/도메인 분류
 def classify_domain(question: str) -> List[str]:
     q = question.lower()
-    if any(k in q for k in ["요트","laser","470"]):
+    # 요트 관련 키워드
+    if any(k in q for k in ["요트","laser","470","yacht"]):
         return ["yacht"]
-    elif any(k in q for k in ["야구","투수","포수","내야","외야"]):
+    # 야구 관련 키워드
+    elif any(k in q for k in ["야구","투수","포수","내야","외야","baseball"]):
         return ["baseball"]
-    elif any(k in q for k in ["체조","평행봉","마루","도마","링"]):
+    # 체조 관련 키워드
+    elif any(k in q for k in ["체조","평행봉","마루","도마","링","gymnastics"]):
         return ["gymnastics"]
-    else:
-        return ["yacht","baseball","gymnastics"]  # fallback
+    # 모르면 모든 도메인 검색
+    return ["yacht","baseball","gymnastics"]
 
 def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
     qtokens = tokenize(query)
     hits = []
     if not domain_kb: return []
     for key, val in domain_kb.items():
-        text = json.dumps(val, ensure_ascii=False) if isinstance(val, dict) else str(val)
+        # 모든 하위 값 문자열 병합
+        def flatten_text(obj):
+            if isinstance(obj, dict):
+                return " ".join([flatten_text(v) for v in obj.values()])
+            elif isinstance(obj, list):
+                return " ".join([flatten_text(i) for i in obj])
+            else:
+                return str(obj)
+        text = flatten_text(val)
         score = score_doc_for_query(text, qtokens)
         hits.append((score, key, val))
     hits = sorted(hits, key=lambda x: x[0], reverse=True)
@@ -82,7 +93,11 @@ def summarize_doc(doc: dict) -> str:
     parts = []
     if "overview" in doc: parts.append(doc["overview"])
     if "function" in doc: parts.append(doc["function"])
-    if "wind_ranges" in doc: parts.append("바람 범위: " + ", ".join([f"{k}={v}" for k,v in doc["wind_ranges"].items()]))
+    if "equipment" in doc:
+        for k, v in doc["equipment"].items():
+            parts.append(f"{k}: {v.get('description', '')}")
+    if "wind_ranges" in doc:
+        parts.append("바람 범위: " + ", ".join([f"{k}={v}" for k,v in doc["wind_ranges"].items()]))
     if "cunningham" in doc and isinstance(doc["cunningham"], dict):
         parts.append("커닝햄 가이드: " + ", ".join([f"{k}={v}" for k,v in doc["cunningham"].items()]))
     return "\n".join(parts)
@@ -99,7 +114,7 @@ def local_synthesize_answer(query: str, retrieved: dict) -> str:
             parts.append(f"{snippet}")
     if not found:
         return "죄송합니다, 관련 정보를 찾을 수 없습니다."
-    parts.append("\n원하면 추가 설명이나 세부 정보도 안내할 수 있어요.")
+    parts.append("\n추가 설명이나 세부 정보가 필요하면 알려주세요!")
     return textwrap.shorten("\n".join(parts), width=3500, placeholder="\n\n…(생략)")
 
 # OpenAI 호출 (선택)
