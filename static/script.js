@@ -23,7 +23,8 @@ async function sendMessage() {
     const aiDiv = messages.lastElementChild;
 
     try {
-        const resp = await fetch("https://capstone-design-7unu.onrender.com/query", {
+        // ✅ 상대경로 fetch
+        const resp = await fetch("/query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ question: text })
