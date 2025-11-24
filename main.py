@@ -34,14 +34,16 @@ if os.path.exists(STATIC_DIR):
 KB: Dict[str, Dict[str, dict]] = {}
 for domain in ["yacht", "baseball", "gymnastics"]:
     domain_path = os.path.join(BASE_DIR, domain)
-    if os.path.exists(domain_path):
-        KB[domain] = {}
-        for fname in os.listdir(domain_path):
+    KB[domain] = {}
+
+    for root, _, files in os.walk(domain_path):
+        for fname in files:
             if fname.lower().endswith(".json"):
-                fpath = os.path.join(domain_path, fname)
+                fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, "r", encoding="utf-8-sig") as f:
-                        KB[domain][fname] = json.load(f)
+                        key = os.path.relpath(fpath, domain_path)  # 중복 방지
+                        KB[domain][key] = json.load(f)
                 except:
                     print(f"[Warn] JSON decode error: {fpath}")
 
