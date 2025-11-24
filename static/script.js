@@ -1,8 +1,8 @@
-// static/script.js
 const messages = document.getElementById("messages");
 const input = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 
+// 메시지 추가
 function addMessage(text, sender) {
     const div = document.createElement("div");
     div.classList.add("message", sender);
@@ -11,51 +11,38 @@ function addMessage(text, sender) {
     messages.scrollTop = messages.scrollHeight;
 }
 
+// 서버에 질문 보내기
 async function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
 
-    // 사용자 메시지 표시
-    addMessage(text, "user");
+    addMessage(text, "user"); // 사용자 메시지 표시
     input.value = "";
 
-    // 로딩 메시지
-    const loadingDiv = document.createElement("div");
-    loadingDiv.classList.add("message", "ai");
-    loadingDiv.textContent = "응답 생성 중...";
-    messages.appendChild(loadingDiv);
-    messages.scrollTop = messages.scrollHeight;
-
     try {
-        const response = await fetch("/query", {
+        const response = await fetch("/query", { // /chat -> /query
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: text })
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ question: text }) // key는 question
         });
 
         const data = await response.json();
 
-        // 로딩 메시지 제거
-        loadingDiv.remove();
-
-        // 서버 응답 표시
         if (data.answer) {
-            addMessage(data.answer, "ai");
+            addMessage(data.answer, "ai"); // 서버 응답 표시
         } else {
-            addMessage("서버 오류: 응답을 받지 못했습니다.", "ai");
-            console.error(data);
+            addMessage("죄송합니다, 답변을 받을 수 없습니다.", "ai");
         }
     } catch (e) {
-        loadingDiv.remove();
-        addMessage("네트워크 오류: " + e.message, "ai");
+        addMessage("서버 오류가 발생했습니다.", "ai");
         console.error(e);
     }
 }
 
-// 전송 버튼 클릭
+// 이벤트
 sendBtn.addEventListener("click", sendMessage);
-
-// Enter 키 전송
 input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
