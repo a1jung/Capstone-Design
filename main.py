@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-# OpenAI optional
 try:
     import openai
 except:
@@ -13,16 +12,15 @@ except:
 
 app = FastAPI()
 
-# 🔹 CORS 설정 (배포 환경 브라우저 요청 허용)
+# CORS 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 배포용: 모든 도메인 허용
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 경로 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -30,8 +28,9 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# KB 로드
+# Knowledge Base
 KB: Dict[str, Dict[str, dict]] = {}
+
 for domain in ["yacht", "baseball", "gymnastics"]:
     domain_path = os.path.join(BASE_DIR, domain)
     KB[domain] = {}
@@ -42,20 +41,39 @@ for domain in ["yacht", "baseball", "gymnastics"]:
                 fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, "r", encoding="utf-8-sig") as f:
-                        key = os.path.relpath(fpath, domain_path)  # 중복 방지
+                        key = os.path.relpath(fpath, domain_path)
                         KB[domain][key] = json.load(f)
                 except:
                     print(f"[Warn] JSON decode error: {fpath}")
 
-# 토크나이저
+# Tokenizer
 def tokenize(text: str) -> List[str]:
     return [t.lower() for t in re.findall(r"[A-Za-z\uAC00-\uD7AF0-9]+", str(text))] if text else []
 
+# 한글 → 영어 확장 사전
+synonyms = {
+    "요트": ["yacht", "boat", "sailing", "laser", "470"],
+    "기계체조": ["gymnastics"],
+    "체조": ["gymnastics"],
+    "야구": ["baseball"],
+    "투수": ["pitcher"],
+    "포수": ["catcher"],
+    "내야수": ["infielder"],
+    "외야수": ["outfielder"]
+}
+
+def expand_query_tokens(qtokens):
+    expanded = set(qtokens)
+    for qt in qtokens:
+        if qt in synonyms:
+            for syn in synonyms[qt]:
+                expanded.add(syn.lower())
+    return list(expanded)
+
 def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
-    if not doc_text: return 0
     dtoks = tokenize(doc_text)
-    s = 0
     dtokset = set(dtoks)
+    s = 0
     for qt in query_tokens:
         if qt in dtokset: s += 2
         for dt in dtoks:
@@ -63,11 +81,10 @@ def score_doc_for_query(doc_text: str, query_tokens: List[str]) -> int:
     return s
 
 def retrieve_relevant(domain_kb: dict, query: str, top_k=3):
-    qtokens = tokenize(query)
+    qtokens = expand_query_tokens(tokenize(query))  # 변경 부분!
     hits = []
-    if not domain_kb: return []
     for key, val in domain_kb.items():
-        text = json.dumps(val, ensure_ascii=False) if isinstance(val, dict) else str(val)
+        text = json.dumps(val, ensure_ascii=False)
         score = score_doc_for_query(text, qtokens)
         hits.append((score, key, val))
     hits = sorted(hits, key=lambda x: x[0], reverse=True)
@@ -81,40 +98,23 @@ def local_synthesize_answer(query: str, retrieved: dict) -> str:
         found = True
         parts.append(f"--- {domain.upper()} 관련 정보 ---")
         for h in hits:
-            snippet = json.dumps(h["doc"], ensure_ascii=False, indent=2) if isinstance(h["doc"], dict) else str(h["doc"])
+            snippet = json.dumps(h["doc"], ensure_ascii=False, indent=2)
             parts.append(f"[{h['key']}] (score {h['score']}):\n{snippet}\n")
     if not found:
         return "죄송합니다, 관련 정보를 찾을 수 없습니다."
-    return textwrap.shorten("\n".join(parts), width=3500, placeholder="\n\n…(생략)")
+    return textwrap.shorten("\n".join(parts), width=3000, placeholder="\n\n…(생략)")
 
-# OpenAI 호출 (선택)
-def openai_generate(system_prompt: str, user_prompt: str, api_key: str, max_tokens=512):
-    if not openai: return None, "OpenAI 패키지가 설치되지 않음."
-    if not api_key: return None, "OpenAI API Key 없음."
-    openai.api_key = api_key
-    try:
-        resp = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role":"system","content":system_prompt},{"role":"user","content":user_prompt}],
-            max_tokens=max_tokens,
-            temperature=0.7
-        )
-        return resp.choices[0].message.content.strip(), None
-    except Exception as e:
-        return None, str(e)
-
-# FastAPI 엔드포인트
 @app.get("/")
 async def home():
     html_path = os.path.join(TEMPLATES_DIR, "index.html")
     if os.path.exists(html_path):
         return FileResponse(html_path)
-    return {"error": "index.html not found on server"}
+    return {"error": "index.html not found"}
 
 @app.post("/query")
 async def query_ai(req: Request):
     data = await req.json()
-    question = data.get("question", "").strip()
+    question = data.get("question", "")
     if not question:
         return JSONResponse({"answer": "질문을 입력해주세요."})
 
@@ -123,8 +123,8 @@ async def query_ai(req: Request):
 
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key:
-        system_prompt = "당신은 Capstone Design 전문가 AI입니다. 질문에 대해 최대한 정확하고 이해하기 쉽게 답하세요."
-        gpt_answer, err = openai_generate(system_prompt, answer, api_key, max_tokens=400)
-        if gpt_answer: answer = gpt_answer
+        system_prompt = "Capstone 전문가 AI 답변"
+        ai, err = openai_generate(system_prompt, answer, api_key, 450)
+        if ai: answer = ai
 
     return JSONResponse({"answer": answer})
